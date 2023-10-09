@@ -1,0 +1,22 @@
+[package]
+name = "lock_ordering"
+version = "0.1.0"
+edition = "2021"
+authors = ["Alex Konradi"]
+description = "Lock ordering enforcement at compile time."
+readme = "README.md"
+repository = "https://github.com/akonradi/lock-ordering"
+license = "MIT"
+keywords = ["lock", "locking", "ordering", "deadlock"]
+categories = ["no-std::no-alloc"]
+
+[lib]
+name = "lock_ordering"
+path = "src/lib.rs"
+
+[features]
+default = ["std"]
+std = []
+
+[dev-dependencies]
+trybuild = "1.0.85"
