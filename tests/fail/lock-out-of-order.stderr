@@ -1,17 +1,12 @@
 error[E0277]: the trait bound `FirstLock: LockAfter<SecondLock>` is not satisfied
-  --> tests/fail/lock-out-of-order.rs:31:52
+  --> tests/fail/lock-out-of-order.rs:40:34
    |
-31 |     let mut first_guard = locked.lock::<FirstLock, _>(&first);
-   |                                  ----              ^ the trait `LockAfter<SecondLock>` is not implemented for `FirstLock`
-   |                                  |
-   |                                  required by a bound introduced by this call
+40 |     let mut first_guard = locked.lock::<FirstLock>(&first);
+   |                                  ^^^^ the trait `LockAfter<SecondLock>` is not implemented for `FirstLock`
    |
    = help: the trait `LockAfter<Unlocked>` is implemented for `FirstLock`
 note: required by a bound in `LockedAt::<'_, L>::lock`
   --> src/lockedat.rs
    |
-   |     pub fn lock<
-   |            ---- required by a bound in this associated function
-   |         'a,
-   |         NewLock: LockAfter<L> + 'a + LockLevel<Method = MutualExclusion>,
-   |                  ^^^^^^^^^^^^ required by this bound in `LockedAt::<'_, L>::lock`
+   |     pub fn lock<'a, NewLock: LockAfter<L> + 'a + MutexLockLevel>(
+   |                              ^^^^^^^^^^^^ required by this bound in `LockedAt::<'_, L>::lock`

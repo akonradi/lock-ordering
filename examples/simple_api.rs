@@ -1,7 +1,8 @@
 use std::sync::{Mutex, RwLock};
 
 use lock_ordering::{
-    relation::LockAfter, LockLevel, LockedAt, MutualExclusion, ReadWrite, Unlocked,
+    lock::{MutexLockLevel, RwLockLevel}, relation::LockAfter, LockLevel, LockedAt, MutualExclusion, ReadWrite,
+    Unlocked,
 };
 
 #[derive(Default)]
@@ -37,17 +38,29 @@ impl LockAfter<LockC> for LockD {}
 impl LockLevel for LockA {
     type Method = MutualExclusion;
 }
+impl MutexLockLevel for LockA {
+    type Mutex = Mutex<usize>;
+}
 
 impl LockLevel for LockB {
     type Method = MutualExclusion;
+}
+impl MutexLockLevel for LockB {
+    type Mutex = Mutex<bool>;
 }
 
 impl LockLevel for LockC {
     type Method = ReadWrite;
 }
+impl RwLockLevel for LockC {
+    type RwLock = RwLock<Nested>;
+}
 
 impl LockLevel for LockD {
     type Method = MutualExclusion;
+}
+impl MutexLockLevel for LockD {
+    type Mutex = Mutex<u8>;
 }
 
 #[derive(Default)]
@@ -67,15 +80,15 @@ fn main() {
                 let mut locked = LockedAt::new();
 
                 let (mut locked, mut a_guard) =
-                    locked.with_lock::<LockA, _>(&state.sibling.a).unwrap();
+                    locked.with_lock::<LockA>(&state.sibling.a).unwrap();
 
                 let (mut locked, mut b_guard) =
-                    locked.with_lock::<LockB, _>(&state.sibling.b).unwrap();
+                    locked.with_lock::<LockB>(&state.sibling.b).unwrap();
 
                 let (mut locked, c_guard) =
-                    locked.with_read_lock::<LockC, _>(&state.nested.c).unwrap();
+                    locked.with_read_lock::<LockC>(&state.nested.c).unwrap();
 
-                let mut d_guard = locked.lock::<LockD, _>(&(*c_guard).d).unwrap();
+                let mut d_guard = locked.lock::<LockD>(&(*c_guard).d).unwrap();
 
                 // Perform some work with the locked state.
                 *d_guard = d_guard.wrapping_add(*a_guard as u8);
@@ -87,7 +100,7 @@ fn main() {
 
     assert_eq!(
         *LockedAt::new()
-            .lock::<LockA, _>(&state.sibling.a)
+            .lock::<LockA>(&state.sibling.a)
             .expect("wasn't poisoned"),
         MAX_THREADS
     );

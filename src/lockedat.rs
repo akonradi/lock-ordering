@@ -1,9 +1,9 @@
 use core::marker::PhantomData;
 
 use crate::{
-    lock::{MutexLock, RwLock},
+    lock::{MutexLock, MutexLockLevel, RwLock, RwLockLevel},
     relation::LockAfter,
-    LockLevel, Unlocked,
+    Unlocked,
 };
 
 /// Indicator type for a mutual exclusion lock.
@@ -46,38 +46,46 @@ impl<L> LockedAt<'_, L> {
     /// Attempts to acquire a lock on `NewLock` state.
     ///
     /// Assuming `NewLock` is a lock level that can be acquired after `L`, this
-    /// method provides access to state held in the [`MutexLock`] type T. If the
-    /// lock acquisition fails, an error will be returned. Otherwise, this
-    /// method returns a new `LockedAt` along with an accessor for the held
-    /// state.
+    /// method provides access to state held in the [`MutexLock`] type
+    /// `NewLock::Mutex`. If the lock acquisition fails, an error will be
+    /// returned. Otherwise, this method returns a new `LockedAt` along with an
+    /// accessor for the held state.
     ///
     /// If no further `LockedAt` calls need to be made after this one, consider
     /// using [`LockedAt::lock`] instead.
-    pub fn with_lock<
-        'a,
-        NewLock: LockAfter<L> + LockLevel<Method = MutualExclusion>,
-        T: MutexLock,
-    >(
+    pub fn with_lock<'a, NewLock: LockAfter<L> + MutexLockLevel>(
         &'a mut self,
-        t: &'a T,
-    ) -> Result<(LockedAt<'a, NewLock>, T::Guard<'a>), T::Error<'a>> {
+        t: &'a NewLock::Mutex,
+    ) -> Result<
+        (
+            LockedAt<'a, NewLock>,
+            <NewLock::Mutex as MutexLock>::Guard<'a>,
+        ),
+        <NewLock::Mutex as MutexLock>::Error<'a>,
+    > {
         t.lock().map(|guard| (LockedAt(PhantomData), guard))
     }
 
     /// Attempts to acquire a shared lock on `NewLock` state.
     ///
     /// Assuming `NewLock` is a lock level that can be acquired after `L`, this
-    /// method provides access to state held in the [`ReadWrite`] type T. If the
-    /// lock acquisition fails, an error will be returned. Otherwise, this
-    /// method returns a new `LockedAt` along with a read-only accessor for the
-    /// held state.
+    /// method provides access to state held in the [`ReadWrite`] type
+    /// `NewLock::RwLock`. If the lock acquisition fails, an error will be
+    /// returned. Otherwise, this method returns a new `LockedAt` along with a
+    /// read-only accessor for the held state.
     ///
     /// If no further `LockedAt` calls need to be made after this one, consider
     /// using [`LockedAt::read_lock`] instead.
-    pub fn with_read_lock<'a, NewLock: LockAfter<L> + LockLevel<Method = ReadWrite>, T: RwLock>(
+    pub fn with_read_lock<'a, NewLock: LockAfter<L> + RwLockLevel>(
         &'a mut self,
-        t: &'a T,
-    ) -> Result<(LockedAt<'a, NewLock>, T::ReadGuard<'a>), T::ReadError<'a>> {
+        t: &'a NewLock::RwLock,
+    ) -> Result<
+        (
+            LockedAt<'a, NewLock>,
+            <NewLock::RwLock as RwLock>::ReadGuard<'a>,
+        ),
+        <NewLock::RwLock as RwLock>::ReadError<'a>,
+    > {
         t.read().map(|guard| (LockedAt(PhantomData), guard))
     }
 
@@ -91,10 +99,16 @@ impl<L> LockedAt<'_, L> {
     ///
     /// If no further `LockedAt` calls need to be made after this one, consider
     /// using [`LockedAt::write_lock`] instead.
-    pub fn with_write_lock<'a, NewLock: LockAfter<L> + LockLevel<Method = ReadWrite>, T: RwLock>(
+    pub fn with_write_lock<'a, NewLock: LockAfter<L> + RwLockLevel>(
         &'a mut self,
-        t: &'a T,
-    ) -> Result<(LockedAt<'a, NewLock>, T::WriteGuard<'a>), T::WriteError<'a>> {
+        t: &'a NewLock::RwLock,
+    ) -> Result<
+        (
+            LockedAt<'a, NewLock>,
+            <NewLock::RwLock as RwLock>::WriteGuard<'a>,
+        ),
+        <NewLock::RwLock as RwLock>::WriteError<'a>,
+    > {
         t.write().map(|guard| (LockedAt(PhantomData), guard))
     }
 }
@@ -102,33 +116,35 @@ impl<L> LockedAt<'_, L> {
 // Convenience methods for accessing leaf locks in the ordering tree.
 impl<L> LockedAt<'_, L> {
     /// Provides access to a [MutexLock]'s state.
-    pub fn lock<
-        'a,
-        NewLock: LockAfter<L> + 'a + LockLevel<Method = MutualExclusion>,
-        T: MutexLock,
-    >(
+    pub fn lock<'a, NewLock: LockAfter<L> + 'a + MutexLockLevel>(
         &'a mut self,
-        t: &'a T,
-    ) -> Result<T::Guard<'a>, T::Error<'a>> {
-        self.with_lock::<NewLock, T>(t)
-            .map(|(_locked, guard)| guard)
+        t: &'a NewLock::Mutex,
+    ) -> Result<<NewLock::Mutex as MutexLock>::Guard<'a>, <NewLock::Mutex as MutexLock>::Error<'a>>
+    {
+        self.with_lock::<NewLock>(t).map(|(_locked, guard)| guard)
     }
 
     /// Provides read access to a [RwLock]'s state.
-    pub fn read_lock<'a, NewLock: LockAfter<L> + LockLevel<Method = ReadWrite> + 'a, T: RwLock>(
+    pub fn read_lock<'a, NewLock: LockAfter<L> + RwLockLevel + 'a>(
         &'a mut self,
-        t: &'a T,
-    ) -> Result<T::ReadGuard<'a>, T::ReadError<'a>> {
-        self.with_read_lock::<NewLock, T>(t)
+        t: &'a NewLock::RwLock,
+    ) -> Result<
+        <NewLock::RwLock as RwLock>::ReadGuard<'a>,
+        <NewLock::RwLock as RwLock>::ReadError<'a>,
+    > {
+        self.with_read_lock::<NewLock>(t)
             .map(|(_locked, guard)| guard)
     }
 
     /// Provides read/write access to a [RwLock]'s state.
-    pub fn write_lock<'a, NewLock: LockAfter<L> + LockLevel<Method = ReadWrite> + 'a, T: RwLock>(
+    pub fn write_lock<'a, NewLock: LockAfter<L> + RwLockLevel + 'a>(
         &'a mut self,
-        t: &'a T,
-    ) -> Result<T::WriteGuard<'a>, T::WriteError<'a>> {
-        self.with_write_lock::<NewLock, T>(t)
+        t: &'a NewLock::RwLock,
+    ) -> Result<
+        <NewLock::RwLock as RwLock>::WriteGuard<'a>,
+        <NewLock::RwLock as RwLock>::WriteError<'a>,
+    > {
+        self.with_write_lock::<NewLock>(t)
             .map(|(_locked, guard)| guard)
     }
 }

@@ -1,4 +1,6 @@
-use lock_ordering::{relation::LockAfter, LockLevel, LockedAt, MutualExclusion, Unlocked};
+use lock_ordering::{
+    relation::LockAfter, LockLevel, LockedAt, lock::MutexLockLevel, MutualExclusion, Unlocked,
+};
 
 struct FirstLock;
 struct SecondLock;
@@ -12,8 +14,15 @@ impl LockAfter<FirstLock> for SecondLock {}
 impl LockLevel for FirstLock {
     type Method = MutualExclusion;
 }
+impl MutexLockLevel for FirstLock {
+    type Mutex = std::sync::Mutex<usize>;
+}
+
 impl LockLevel for SecondLock {
     type Method = MutualExclusion;
+}
+impl MutexLockLevel for SecondLock {
+    type Mutex = std::sync::Mutex<char>;
 }
 
 fn main() {
@@ -23,10 +32,10 @@ fn main() {
     let mut locked = LockedAt::new();
 
     // This is fine: the second lock can be acquired without holding the first.
-    let (mut locked, mut second_guard) = locked.with_lock::<SecondLock, _>(&second).unwrap();
+    let (mut locked, mut second_guard) = locked.with_lock::<SecondLock>(&second).unwrap();
     *second_guard = 'c';
 
     // This is problematic: the first lock can't be acquired while the second is
     // held.
-    let mut first_guard = locked.lock::<FirstLock, _>(&first);
+    let mut first_guard = locked.lock::<FirstLock>(&first);
 }
