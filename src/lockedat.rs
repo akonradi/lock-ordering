@@ -6,6 +6,9 @@ use crate::{
     Unlocked,
 };
 
+#[cfg(feature = "async")]
+use crate::lock::{AsyncMutexLock, AsyncMutexLockLevel, AsyncRwLock, AsyncRwLockLevel};
+
 /// Indicator type for a mutual exclusion lock.
 ///
 /// This can be used as the [`LockLevel::Method`] associated type for lock
@@ -146,5 +149,104 @@ impl<L> LockedAt<'_, L> {
     > {
         self.with_write_lock::<NewLock>(t)
             .map(|(_locked, guard)| guard)
+    }
+}
+
+#[cfg(feature = "async")]
+impl<L> LockedAt<'_, L> {
+    /// Asynchronously acquires a lock on `NewLock` state.
+    ///
+    /// Assuming `NewLock` is a lock level that can be acquired after `L`, this
+    /// method provides access to state held in the [`AsyncMutexLock`] type
+    /// `NewLock::Mutex`, yielding the current task until the lock can be
+    /// acquired. Once the state is locked, returns a guard for accessing it
+    /// and a new `LockedAt` instance that can be used to acquire additional
+    /// locks.
+    ///
+    /// If no further `LockedAt` calls need to be made after this one, consider
+    /// using [`LockedAt::wait_lock`] instead.
+    pub async fn wait_for_lock<'a, NewLock: LockAfter<L> + AsyncMutexLockLevel>(
+        &'a mut self,
+        t: &'a NewLock::Mutex,
+    ) -> (
+        LockedAt<'a, NewLock>,
+        <NewLock::Mutex as AsyncMutexLock>::Guard<'a>,
+    ) {
+        let guard = t.lock().await;
+        (LockedAt(PhantomData), guard)
+    }
+
+    /// Asynchronously acquires a shared lock on `NewLock` state.
+    ///
+    /// Assuming `NewLock` is a lock level that can be acquired after `L`, this
+    /// method provides access to state held in the [`ReadWrite`] type T.
+    /// This method will yield the current task until the lock can be acquired.
+    /// Once the state is locked, this method returns a guard for accessing it
+    /// and a new `LockedAt` instance that can be used to acquire additional
+    /// locks.
+    ///
+    /// If no further `LockedAt` calls need to be made after this one, consider
+    /// using [`LockedAt::wait_read`] instead.
+    pub async fn wait_for_read<'a, NewLock: LockAfter<L> + AsyncRwLockLevel>(
+        &'a mut self,
+        t: &'a NewLock::RwLock,
+    ) -> (
+        LockedAt<'a, NewLock>,
+        <NewLock::RwLock as AsyncRwLock>::ReadGuard<'a>,
+    ) {
+        let guard = t.read().await;
+        (LockedAt(PhantomData), guard)
+    }
+
+    /// Attempts to acquire an exclusive lock on `NewLock` state.
+    ///
+    /// Assuming `NewLock` is a lock level that can be acquired after `L`, this
+    /// method provides access to state held in the [`ReadWrite`] type T. If the
+    /// lock acquisition fails, an error will be returned. Otherwise, this
+    /// method returns a new `LockedAt` along with a read/write accessor for the
+    /// held state.
+    ///
+    /// If no further `LockedAt` calls need to be made after this one, consider
+    /// using [`LockedAt::write_lock`] instead.
+    pub async fn wait_for_write<'a, NewLock: LockAfter<L> + AsyncRwLockLevel>(
+        &'a mut self,
+        t: &'a NewLock::RwLock,
+    ) -> (
+        LockedAt<'a, NewLock>,
+        <NewLock::RwLock as AsyncRwLock>::WriteGuard<'a>,
+    ) {
+        let guard = t.write().await;
+        (LockedAt(PhantomData), guard)
+    }
+}
+
+// Convenience methods for accessing leaf locks in the ordering tree.
+#[cfg(feature = "async")]
+impl<L> LockedAt<'_, L> {
+    /// Asynchronously provides access to an [AsyncMutexLock]'s state.
+    pub async fn wait_lock<'a, NewLock: LockAfter<L> + 'a + AsyncMutexLockLevel>(
+        &'a mut self,
+        t: &'a NewLock::Mutex,
+    ) -> <NewLock::Mutex as AsyncMutexLock>::Guard<'a> {
+        let (_locked, guard) = self.wait_for_lock::<NewLock>(t).await;
+        guard
+    }
+
+    /// Asynchronously provides read access to an [AsyncRwLock]'s state.
+    pub async fn wait_read<'a, NewLock: LockAfter<L> + AsyncRwLockLevel + 'a>(
+        &'a mut self,
+        t: &'a NewLock::RwLock,
+    ) -> <NewLock::RwLock as AsyncRwLock>::ReadGuard<'a> {
+        let (_locked, guard) = self.wait_for_read::<NewLock>(t).await;
+        guard
+    }
+
+    /// Asynchronously provides read/write access to an [AsyncRwLock]'s state.
+    pub async fn wait_write<'a, NewLock: LockAfter<L> + AsyncRwLockLevel + 'a>(
+        &'a mut self,
+        t: &'a NewLock::RwLock,
+    ) -> <NewLock::RwLock as AsyncRwLock>::WriteGuard<'a> {
+        let (_locked, guard) = self.wait_for_write::<NewLock>(t).await;
+        guard
     }
 }

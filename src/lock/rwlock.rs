@@ -69,3 +69,56 @@ mod std {
         }
     }
 }
+
+/// Async locking implementation for [crate::ReadWrite].
+///
+/// Describes how to acquire access to the state for a [crate::LockLevel]
+/// implementation with [Method](crate::LockLevel::Method) = `ReadWrite`.
+/// The error and RAII guard types are implementation-defined.
+#[cfg(feature = "async")]
+pub trait AsyncRwLock {
+    /// [RAII guard] for shared access to data protected by the lock.
+    ///
+    /// [RAII guard]: https://doc.rust-lang.org/rust-by-example/scope/raii.html
+    type ReadGuard<'a>
+    where
+        Self: 'a;
+
+    /// [RAII guard] for exclusive access to data protected by the lock.
+    ///
+    /// [RAII guard]: https://doc.rust-lang.org/rust-by-example/scope/raii.html
+    type WriteGuard<'a>
+    where
+        Self: 'a;
+
+    /// Acquires shared access to data.
+    ///
+    /// Locks the data in `self` for shared (read) access, yielding the current
+    /// task until the lock has been acquired.
+    async fn read(&self) -> Self::ReadGuard<'_>;
+
+    /// Acquires exclusive access to data.
+    ///
+    /// Locks the data in `self` for exclusive (read/write) access, yielding the
+    /// current task until the lock has been acquired.
+    async fn write(&self) -> Self::WriteGuard<'_>;
+}
+
+#[cfg(feature = "tokio")]
+mod tokio {
+    use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+
+    impl<T: ?Sized> super::AsyncRwLock for RwLock<T> {
+        type ReadGuard<'a> = RwLockReadGuard<'a, T> where Self: 'a ;
+
+        type WriteGuard<'a> = RwLockWriteGuard<'a, T> where Self: 'a;
+
+        async fn read(&self) -> Self::ReadGuard<'_> {
+            RwLock::read(self).await
+        }
+
+        async fn write(&self) -> Self::WriteGuard<'_> {
+            RwLock::write(self).await
+        }
+    }
+}

@@ -15,8 +15,13 @@ name = "lock_ordering"
 path = "src/lib.rs"
 
 [features]
-default = ["std"]
+default = ["std", "tokio"]
+async = []
 std = []
+tokio = ["async", "dep:tokio"]
+
+[dependencies]
+tokio = { version = "1", optional = true, features = ["sync"] }
 
 [dev-dependencies]
 trybuild = "1.0.85"

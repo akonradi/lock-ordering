@@ -2,6 +2,8 @@
 
 pub use mutex::MutexLock;
 pub use rwlock::RwLock;
+#[cfg(feature = "async")]
+pub use {mutex::AsyncMutexLock, rwlock::AsyncRwLock};
 
 use crate::{LockLevel, MutualExclusion, ReadWrite};
 
@@ -16,4 +18,16 @@ pub trait MutexLockLevel: LockLevel<Method = MutualExclusion> {
 /// Connects a [`LockLevel`] with a [`RwLock`] implementation.
 pub trait RwLockLevel: LockLevel<Method = ReadWrite> {
     type RwLock: RwLock;
+}
+
+/// Connects a [`LockLevel`] with a [`MutexLock`] implementation.
+#[cfg(feature = "async")]
+pub trait AsyncMutexLockLevel: LockLevel<Method = MutualExclusion> {
+    type Mutex: AsyncMutexLock;
+}
+
+/// Connects a [`LockLevel`] with a [`RwLock`] implementation.
+#[cfg(feature = "async")]
+pub trait AsyncRwLockLevel: LockLevel<Method = ReadWrite> {
+    type RwLock: AsyncRwLock;
 }
