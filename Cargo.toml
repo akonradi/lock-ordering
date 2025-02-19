@@ -16,12 +16,14 @@ name = "lock_ordering"
 path = "src/lib.rs"
 
 [features]
-default = ["std", "tokio"]
+default = ["std", "tokio", "parking_lot"]
 async = []
 std = []
 tokio = ["async", "dep:tokio"]
+parking_lot = ["dep:parking_lot"]
 
 [dependencies]
+parking_lot = { version = "0.12", optional = true }
 tokio = { version = "1", optional = true, features = ["sync"] }
 
 [dev-dependencies]

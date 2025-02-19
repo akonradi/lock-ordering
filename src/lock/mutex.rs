@@ -42,6 +42,24 @@ mod std {
     }
 }
 
+#[cfg(feature = "parking_lot")]
+mod parking_lot {
+    //! Implementation of [`MutexLock`] for [`parking_lot::Mutex`].
+
+    use core::convert::Infallible;
+
+    use parking_lot::{Mutex, MutexGuard};
+
+    impl<T: ?Sized> super::MutexLock for Mutex<T> {
+        type Guard<'a> = MutexGuard<'a, T> where Self: 'a;
+        type Error<'a> = Infallible where Self: 'a;
+
+        fn lock(&self) -> Result<Self::Guard<'_>, Self::Error<'_>> {
+            Ok(Mutex::lock(self))
+        }
+    }
+}
+
 #[cfg(feature = "async")]
 pub trait AsyncMutexLock {
     /// [RAII guard] for accessing data protected by the lock.

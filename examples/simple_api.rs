@@ -1,8 +1,9 @@
 use std::sync::{Mutex, RwLock};
 
 use lock_ordering::{
-    lock::{MutexLockLevel, RwLockLevel}, relation::LockAfter, LockLevel, LockedAt, MutualExclusion, ReadWrite,
-    Unlocked,
+    lock::{MutexLockLevel, RwLockLevel},
+    relation::LockAfter,
+    LockLevel, LockedAt, MutualExclusion, ReadWrite, Unlocked,
 };
 
 #[derive(Default)]
