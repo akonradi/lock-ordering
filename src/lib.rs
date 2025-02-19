@@ -1,5 +1,5 @@
+#![allow(stable_features)]
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(feature = "async", feature(async_fn_in_trait))]
 
 //! # Lock ordering enforcement at compile time
 //!

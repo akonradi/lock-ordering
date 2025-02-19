@@ -9,6 +9,7 @@ repository = "https://github.com/akonradi/lock-ordering"
 license = "MIT"
 keywords = ["lock", "locking", "ordering", "deadlock"]
 categories = ["no-std::no-alloc"]
+rust-version = "1.75"
 
 [lib]
 name = "lock_ordering"
