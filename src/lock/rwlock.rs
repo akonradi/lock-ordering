@@ -95,13 +95,13 @@ pub trait AsyncRwLock {
     ///
     /// Locks the data in `self` for shared (read) access, yielding the current
     /// task until the lock has been acquired.
-    async fn read(&self) -> Self::ReadGuard<'_>;
+    fn read(&self) -> impl core::future::Future<Output = Self::ReadGuard<'_>>;
 
     /// Acquires exclusive access to data.
     ///
     /// Locks the data in `self` for exclusive (read/write) access, yielding the
     /// current task until the lock has been acquired.
-    async fn write(&self) -> Self::WriteGuard<'_>;
+    fn write(&self) -> impl core::future::Future<Output = Self::WriteGuard<'_>>;
 }
 
 #[cfg(feature = "tokio")]

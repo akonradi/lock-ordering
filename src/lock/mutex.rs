@@ -59,7 +59,7 @@ pub trait AsyncMutexLock {
     /// Locks the mutex, causing the current task to yield until the lock has
     /// been acquired. Once the lock is acquired, returns an RAII guard that
     /// allows access to the locked state.
-    async fn lock(&self) -> Self::Guard<'_>;
+    fn lock(&self) -> impl core::future::Future<Output = Self::Guard<'_>>;
 }
 
 #[cfg(feature = "tokio")]
