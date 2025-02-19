@@ -6,8 +6,12 @@ error[E0277]: the trait bound `FirstLock: LockAfter<SecondLock>` is not satisfie
    |
    = help: the trait `LockAfter<Unlocked>` is implemented for `FirstLock`
    = help: for that trait implementation, expected `Unlocked`, found `SecondLock`
+   = note: required for `SecondLock` to implement `LockBefore<FirstLock>`
 note: required by a bound in `LockedAt::<'_, L>::lock`
   --> src/lockedat.rs
    |
-   |     pub fn lock<'a, NewLock: LockAfter<L> + 'a + MutexLockLevel>(
-   |                              ^^^^^^^^^^^^ required by this bound in `LockedAt::<'_, L>::lock`
+   |     pub fn lock<'a, NewLock>(
+   |            ---- required by a bound in this associated function
+...
+   |         L: LockBefore<NewLock>,
+   |            ^^^^^^^^^^^^^^^^^^^ required by this bound in `LockedAt::<'_, L>::lock`

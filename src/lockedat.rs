@@ -1,8 +1,8 @@
 use core::marker::PhantomData;
 
+use crate::relation::LockBefore;
 use crate::{
     lock::{MutexLock, MutexLockLevel, RwLock, RwLockLevel},
-    relation::LockAfter,
     Unlocked,
 };
 
@@ -58,7 +58,7 @@ impl<L> LockedAt<'_, L> {
     /// If no further `LockedAt` calls need to be made after this one, consider
     /// using [`LockedAt::lock`] instead.
     #[allow(clippy::type_complexity)]
-    pub fn with_lock<'a, NewLock: LockAfter<L> + MutexLockLevel>(
+    pub fn with_lock<'a, NewLock>(
         &'a mut self,
         t: &'a NewLock::Mutex,
     ) -> Result<
@@ -67,7 +67,11 @@ impl<L> LockedAt<'_, L> {
             <NewLock::Mutex as MutexLock>::Guard<'a>,
         ),
         <NewLock::Mutex as MutexLock>::Error<'a>,
-    > {
+    >
+    where
+        NewLock: MutexLockLevel,
+        L: LockBefore<NewLock>,
+    {
         t.lock().map(|guard| (LockedAt(PhantomData), guard))
     }
 
@@ -82,7 +86,7 @@ impl<L> LockedAt<'_, L> {
     /// If no further `LockedAt` calls need to be made after this one, consider
     /// using [`LockedAt::read_lock`] instead.
     #[allow(clippy::type_complexity)]
-    pub fn with_read_lock<'a, NewLock: LockAfter<L> + RwLockLevel>(
+    pub fn with_read_lock<'a, NewLock>(
         &'a mut self,
         t: &'a NewLock::RwLock,
     ) -> Result<
@@ -91,7 +95,11 @@ impl<L> LockedAt<'_, L> {
             <NewLock::RwLock as RwLock>::ReadGuard<'a>,
         ),
         <NewLock::RwLock as RwLock>::ReadError<'a>,
-    > {
+    >
+    where
+        NewLock: RwLockLevel,
+        L: LockBefore<NewLock>,
+    {
         t.read().map(|guard| (LockedAt(PhantomData), guard))
     }
 
@@ -106,7 +114,7 @@ impl<L> LockedAt<'_, L> {
     /// If no further `LockedAt` calls need to be made after this one, consider
     /// using [`LockedAt::write_lock`] instead.
     #[allow(clippy::type_complexity)]
-    pub fn with_write_lock<'a, NewLock: LockAfter<L> + RwLockLevel>(
+    pub fn with_write_lock<'a, NewLock>(
         &'a mut self,
         t: &'a NewLock::RwLock,
     ) -> Result<
@@ -115,7 +123,11 @@ impl<L> LockedAt<'_, L> {
             <NewLock::RwLock as RwLock>::WriteGuard<'a>,
         ),
         <NewLock::RwLock as RwLock>::WriteError<'a>,
-    > {
+    >
+    where
+        NewLock: RwLockLevel,
+        L: LockBefore<NewLock>,
+    {
         t.write().map(|guard| (LockedAt(PhantomData), guard))
     }
 }
@@ -123,34 +135,45 @@ impl<L> LockedAt<'_, L> {
 // Convenience methods for accessing leaf locks in the ordering tree.
 impl<L> LockedAt<'_, L> {
     /// Provides access to a [MutexLock]'s state.
-    pub fn lock<'a, NewLock: LockAfter<L> + 'a + MutexLockLevel>(
+    pub fn lock<'a, NewLock>(
         &'a mut self,
         t: &'a NewLock::Mutex,
     ) -> Result<<NewLock::Mutex as MutexLock>::Guard<'a>, <NewLock::Mutex as MutexLock>::Error<'a>>
+    where
+        NewLock: 'a + MutexLockLevel,
+        L: LockBefore<NewLock>,
     {
         self.with_lock::<NewLock>(t).map(|(_locked, guard)| guard)
     }
 
     /// Provides read access to a [RwLock]'s state.
-    pub fn read_lock<'a, NewLock: LockAfter<L> + RwLockLevel + 'a>(
+    pub fn read_lock<'a, NewLock>(
         &'a mut self,
         t: &'a NewLock::RwLock,
     ) -> Result<
         <NewLock::RwLock as RwLock>::ReadGuard<'a>,
         <NewLock::RwLock as RwLock>::ReadError<'a>,
-    > {
+    >
+    where
+        NewLock: RwLockLevel + 'a,
+        L: LockBefore<NewLock>,
+    {
         self.with_read_lock::<NewLock>(t)
             .map(|(_locked, guard)| guard)
     }
 
     /// Provides read/write access to a [RwLock]'s state.
-    pub fn write_lock<'a, NewLock: LockAfter<L> + RwLockLevel + 'a>(
+    pub fn write_lock<'a, NewLock>(
         &'a mut self,
         t: &'a NewLock::RwLock,
     ) -> Result<
         <NewLock::RwLock as RwLock>::WriteGuard<'a>,
         <NewLock::RwLock as RwLock>::WriteError<'a>,
-    > {
+    >
+    where
+        NewLock: RwLockLevel + 'a,
+        L: LockBefore<NewLock>,
+    {
         self.with_write_lock::<NewLock>(t)
             .map(|(_locked, guard)| guard)
     }
@@ -169,13 +192,17 @@ impl<L> LockedAt<'_, L> {
     ///
     /// If no further `LockedAt` calls need to be made after this one, consider
     /// using [`LockedAt::wait_lock`] instead.
-    pub async fn wait_for_lock<'a, NewLock: LockAfter<L> + AsyncMutexLockLevel + 'a>(
+    pub async fn wait_for_lock<'a, NewLock>(
         &'a mut self,
         t: &'a NewLock::Mutex,
     ) -> (
         LockedAt<'a, NewLock>,
         <NewLock::Mutex as AsyncMutexLock>::Guard<'a>,
-    ) {
+    )
+    where
+        NewLock: AsyncMutexLockLevel + 'a,
+        L: LockBefore<NewLock>,
+    {
         let guard = t.lock().await;
         (LockedAt(PhantomData), guard)
     }
@@ -191,13 +218,17 @@ impl<L> LockedAt<'_, L> {
     ///
     /// If no further `LockedAt` calls need to be made after this one, consider
     /// using [`LockedAt::wait_read`] instead.
-    pub async fn wait_for_read<'a, NewLock: LockAfter<L> + AsyncRwLockLevel + 'a>(
+    pub async fn wait_for_read<'a, NewLock>(
         &'a mut self,
         t: &'a NewLock::RwLock,
     ) -> (
         LockedAt<'a, NewLock>,
         <NewLock::RwLock as AsyncRwLock>::ReadGuard<'a>,
-    ) {
+    )
+    where
+        NewLock: AsyncRwLockLevel + 'a,
+        L: LockBefore<NewLock>,
+    {
         let guard = t.read().await;
         (LockedAt(PhantomData), guard)
     }
@@ -212,13 +243,17 @@ impl<L> LockedAt<'_, L> {
     ///
     /// If no further `LockedAt` calls need to be made after this one, consider
     /// using [`LockedAt::write_lock`] instead.
-    pub async fn wait_for_write<'a, NewLock: LockAfter<L> + AsyncRwLockLevel + 'a>(
+    pub async fn wait_for_write<'a, NewLock>(
         &'a mut self,
         t: &'a NewLock::RwLock,
     ) -> (
         LockedAt<'a, NewLock>,
         <NewLock::RwLock as AsyncRwLock>::WriteGuard<'a>,
-    ) {
+    )
+    where
+        NewLock: AsyncRwLockLevel + 'a,
+        L: LockBefore<NewLock>,
+    {
         let guard = t.write().await;
         (LockedAt(PhantomData), guard)
     }
@@ -228,28 +263,40 @@ impl<L> LockedAt<'_, L> {
 #[cfg(feature = "async")]
 impl<L> LockedAt<'_, L> {
     /// Asynchronously provides access to an [AsyncMutexLock]'s state.
-    pub async fn wait_lock<'a, NewLock: LockAfter<L> + 'a + AsyncMutexLockLevel>(
+    pub async fn wait_lock<'a, NewLock>(
         &'a mut self,
         t: &'a NewLock::Mutex,
-    ) -> <NewLock::Mutex as AsyncMutexLock>::Guard<'a> {
+    ) -> <NewLock::Mutex as AsyncMutexLock>::Guard<'a>
+    where
+        NewLock: 'a + AsyncMutexLockLevel,
+        L: LockBefore<NewLock>,
+    {
         let (_locked, guard) = self.wait_for_lock::<NewLock>(t).await;
         guard
     }
 
     /// Asynchronously provides read access to an [AsyncRwLock]'s state.
-    pub async fn wait_read<'a, NewLock: LockAfter<L> + AsyncRwLockLevel + 'a>(
+    pub async fn wait_read<'a, NewLock>(
         &'a mut self,
         t: &'a NewLock::RwLock,
-    ) -> <NewLock::RwLock as AsyncRwLock>::ReadGuard<'a> {
+    ) -> <NewLock::RwLock as AsyncRwLock>::ReadGuard<'a>
+    where
+        NewLock: AsyncRwLockLevel + 'a,
+        L: LockBefore<NewLock>,
+    {
         let (_locked, guard) = self.wait_for_read::<NewLock>(t).await;
         guard
     }
 
     /// Asynchronously provides read/write access to an [AsyncRwLock]'s state.
-    pub async fn wait_write<'a, NewLock: LockAfter<L> + AsyncRwLockLevel + 'a>(
+    pub async fn wait_write<'a, NewLock>(
         &'a mut self,
         t: &'a NewLock::RwLock,
-    ) -> <NewLock::RwLock as AsyncRwLock>::WriteGuard<'a> {
+    ) -> <NewLock::RwLock as AsyncRwLock>::WriteGuard<'a>
+    where
+        NewLock: AsyncRwLockLevel + 'a,
+        L: LockBefore<NewLock>,
+    {
         let (_locked, guard) = self.wait_for_write::<NewLock>(t).await;
         guard
     }
