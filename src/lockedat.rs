@@ -40,6 +40,7 @@ pub struct LockedAt<'a, L>(PhantomData<&'a mut L>);
 
 impl LockedAt<'static, Unlocked> {
     /// Creates a new `LockedAt` without any locks held.
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self(PhantomData)
     }
@@ -56,6 +57,7 @@ impl<L> LockedAt<'_, L> {
     ///
     /// If no further `LockedAt` calls need to be made after this one, consider
     /// using [`LockedAt::lock`] instead.
+    #[allow(clippy::type_complexity)]
     pub fn with_lock<'a, NewLock: LockAfter<L> + MutexLockLevel>(
         &'a mut self,
         t: &'a NewLock::Mutex,
@@ -79,6 +81,7 @@ impl<L> LockedAt<'_, L> {
     ///
     /// If no further `LockedAt` calls need to be made after this one, consider
     /// using [`LockedAt::read_lock`] instead.
+    #[allow(clippy::type_complexity)]
     pub fn with_read_lock<'a, NewLock: LockAfter<L> + RwLockLevel>(
         &'a mut self,
         t: &'a NewLock::RwLock,
@@ -102,6 +105,7 @@ impl<L> LockedAt<'_, L> {
     ///
     /// If no further `LockedAt` calls need to be made after this one, consider
     /// using [`LockedAt::write_lock`] instead.
+    #[allow(clippy::type_complexity)]
     pub fn with_write_lock<'a, NewLock: LockAfter<L> + RwLockLevel>(
         &'a mut self,
         t: &'a NewLock::RwLock,

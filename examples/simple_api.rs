@@ -88,7 +88,7 @@ fn main() {
                 let (mut locked, c_guard) =
                     locked.with_read_lock::<LockC>(&state.nested.c).unwrap();
 
-                let mut d_guard = locked.lock::<LockD>(&(*c_guard).d).unwrap();
+                let mut d_guard = locked.lock::<LockD>(&c_guard.d).unwrap();
 
                 // Perform some work with the locked state.
                 *d_guard = d_guard.wrapping_add(*a_guard as u8);
