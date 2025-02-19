@@ -165,7 +165,7 @@ impl<L> LockedAt<'_, L> {
     ///
     /// If no further `LockedAt` calls need to be made after this one, consider
     /// using [`LockedAt::wait_lock`] instead.
-    pub async fn wait_for_lock<'a, NewLock: LockAfter<L> + AsyncMutexLockLevel>(
+    pub async fn wait_for_lock<'a, NewLock: LockAfter<L> + AsyncMutexLockLevel + 'a>(
         &'a mut self,
         t: &'a NewLock::Mutex,
     ) -> (
@@ -187,7 +187,7 @@ impl<L> LockedAt<'_, L> {
     ///
     /// If no further `LockedAt` calls need to be made after this one, consider
     /// using [`LockedAt::wait_read`] instead.
-    pub async fn wait_for_read<'a, NewLock: LockAfter<L> + AsyncRwLockLevel>(
+    pub async fn wait_for_read<'a, NewLock: LockAfter<L> + AsyncRwLockLevel + 'a>(
         &'a mut self,
         t: &'a NewLock::RwLock,
     ) -> (
@@ -208,7 +208,7 @@ impl<L> LockedAt<'_, L> {
     ///
     /// If no further `LockedAt` calls need to be made after this one, consider
     /// using [`LockedAt::write_lock`] instead.
-    pub async fn wait_for_write<'a, NewLock: LockAfter<L> + AsyncRwLockLevel>(
+    pub async fn wait_for_write<'a, NewLock: LockAfter<L> + AsyncRwLockLevel + 'a>(
         &'a mut self,
         t: &'a NewLock::RwLock,
     ) -> (
