@@ -80,6 +80,23 @@ pub trait AsyncMutexLock {
     fn lock(&self) -> impl core::future::Future<Output = Self::Guard<'_>>;
 }
 
+#[cfg(feature = "futures")]
+mod futures {
+    //! Implementation of lock traits for [`futures::lock::Mutex`].
+
+    use futures::lock::{Mutex, MutexGuard};
+
+    impl<T: ?Sized> super::AsyncMutexLock for Mutex<T> {
+        type Guard<'a> = MutexGuard<'a, T>
+        where
+            Self: 'a;
+
+        async fn lock(&self) -> Self::Guard<'_> {
+            Mutex::lock(self).await
+        }
+    }
+}
+
 #[cfg(feature = "tokio")]
 mod tokio {
     //! Implementation of lock traits for [`tokio::sync::Mutex`].
