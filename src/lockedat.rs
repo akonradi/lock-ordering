@@ -9,6 +9,9 @@ use crate::{
 #[cfg(feature = "async")]
 use crate::lock::{AsyncMutexLock, AsyncMutexLockLevel, AsyncRwLock, AsyncRwLockLevel};
 
+#[cfg(doc)]
+use crate::LockLevel;
+
 /// Indicator type for a mutual exclusion lock.
 ///
 /// This can be used as the [`LockLevel::Method`] associated type for lock

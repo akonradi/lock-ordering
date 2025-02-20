@@ -50,7 +50,6 @@ pub trait RwLock {
 #[cfg(feature = "std")]
 mod std {
     //! Implementation of [`RwLock`] for [`std::sync::RwLock`].
-    //!
     use std::sync::{PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
     impl<T: ?Sized> super::RwLock for RwLock<T> {
