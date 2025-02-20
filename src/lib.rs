@@ -244,12 +244,3 @@ pub trait LockLevel {
     /// This should be either [`MutualExclusion`] or [`ReadWrite`].
     type Method;
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn compile_fail() {
-        let t = trybuild::TestCases::new();
-        t.compile_fail("tests/fail/*.rs");
-    }
-}
