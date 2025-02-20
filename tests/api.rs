@@ -4,7 +4,7 @@ use std::ops::DerefMut;
 
 use lock_ordering::lock::MutexLockLevel;
 use lock_ordering::relation::{LockAfter, LockBefore};
-use lock_ordering::{LockLevel, LockedAt, MutualExclusion, Unlocked};
+use lock_ordering::{impl_transitive_lock_order, LockLevel, LockedAt, MutualExclusion, Unlocked};
 
 enum Inner {}
 
@@ -35,4 +35,16 @@ fn lock_before_as_bound() {
             (locked, inner)
         }
     }
+}
+
+#[test]
+fn transitive_lock_relations() {
+    enum First {}
+    enum Second {}
+
+    impl LockAfter<Unlocked> for First {}
+    impl LockAfter<First> for Second {}
+    impl_transitive_lock_order!(First => Second);
+
+    static_assertions::assert_impl_all!(Second: LockAfter<Unlocked>);
 }
