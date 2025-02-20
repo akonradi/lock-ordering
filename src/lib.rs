@@ -205,6 +205,28 @@
 //! `LockedBefore` trait implementations are consistent. There's no
 //! language-level feature that prevents us from introducing a cycle in our
 //! trait implementations and defining an invalid lock ordering!
+//!
+//! # How to use this crate
+//!
+//! You'll need to define a marker type for each "level" in your lock ordering
+//! hierarchy, then implement [`LockLevel`] for each of them. Then carefully
+//! implement [`relation::LockBefore`] to express the order in which pairs of
+//! locks can be acquired. The [`relation::impl_transitive_lock_order`] macro
+//! can help with this by providing transitive implementations of `LockBefore`.
+//!
+//! Next, you'll need to specify the acquisition method for each lock by
+//! implementing one of [`crate::lock::MutexLock`], [`crate::lock::RwLock`], or
+//! their `async` counterparts.
+//!
+//! Lastly, ensure that every call tree in your code constructs at most one
+//! `LockedAt`. "Root" functions that are only called externally can construct
+//! one using [`LockedAt::new`], but any non-root function that acquires a lock
+//! should take a `&mut LockedAt<'_, L>` as an argument. Make sure you consider
+//! the full call graph! A function invoked as a callback, for example, is not a
+//! root function, and so should not construct a `LockedAt` unless the callback
+//! invocation code doesn't acquire any locks.
+//!
+//! See the examples for more details.
 
 pub mod lock;
 mod lockedat;
@@ -217,6 +239,9 @@ pub struct Unlocked;
 
 /// Marker for a type that indicates a level in the locking hierarchy.
 pub trait LockLevel {
+    /// How the lock can be acquired.
+    ///
+    /// This should be either [`MutualExclusion`] or [`ReadWrite`].
     type Method;
 }
 
