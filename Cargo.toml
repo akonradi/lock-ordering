@@ -1,45 +1,10 @@
-[package]
-name = "lock_ordering"
-version = "0.2.0"
+[workspace]
+resolver = "2"
+members = ["lock-ordering"]
+
+[workspace.package]
 edition = "2021"
 authors = ["Alex Bakon"]
-description = "Lock ordering enforcement at compile time."
-readme = "README.md"
+rust-version = "1.75"
 repository = "https://github.com/akonradi/lock-ordering"
 license = "MIT"
-keywords = ["lock", "locking", "ordering", "deadlock"]
-categories = ["no-std::no-alloc"]
-rust-version = "1.75"
-
-[lib]
-name = "lock_ordering"
-path = "src/lib.rs"
-
-[features]
-default = ["std", "tokio", "parking_lot", "futures"]
-async = []
-std = []
-tokio = ["async", "dep:tokio"]
-futures = ["async", "dep:futures"]
-parking_lot = ["dep:parking_lot"]
-
-[dependencies]
-futures = { version = "0.3", optional = true, features = ["std"], default-features = false }
-parking_lot = { version = "0.12", optional = true }
-tokio = { version = "1", optional = true, features = ["sync"] }
-
-[dev-dependencies]
-axum =  "0.8"
-serde = { version = "1", features = ["serde_derive"] }
-serde_json = "1"
-static_assertions = "1.1.0"
-tokio = { version = "1", features = ["rt-multi-thread"] }
-trybuild = "1.0.85"
-
-[[example]]
-name = "simple_api"
-required-features = ["std"]
-
-[[example]]
-name = "chat_server"
-required-features = ["tokio"]
