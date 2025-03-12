@@ -50,6 +50,24 @@ impl LockedAt<'static, Unlocked> {
 }
 
 impl<L> LockedAt<'_, L> {
+    /// Scopes the current lock level lower in the ordering tree.
+    /// 
+    /// Acts as if the current lock level is `NewLock` without actually
+    /// acquiring any locks. This is notionally equivalent to calling
+    /// [`Self::with_lock`] and then `drop`ping the returned guard, but without
+    /// performing any locking operations.
+    pub fn skip_locking<'a, NewLock>(&'a mut self) -> LockedAt<'a, NewLock>
+    where
+        L: LockBefore<NewLock>,
+    {
+        // This is logically safe because any locks that were acquirable before
+        // `NewLock` were also acquirable before `L`. That means that we've only
+        // narrowed the set of acquirable locks, which is always safe.
+        LockedAt(PhantomData)
+    }
+}
+
+impl<L> LockedAt<'_, L> {
     /// Attempts to acquire a lock on `NewLock` state.
     ///
     /// Assuming `NewLock` is a lock level that can be acquired after `L`, this
