@@ -1,0 +1,23 @@
+[package]
+name = "locked-state"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[features]
+default = ["std", "tokio", "parking_lot", "futures"]
+async = ["lock_ordering/async"]
+std = ["lock_ordering/std"]
+tokio = ["async", "lock_ordering/tokio", "dep:tokio"]
+futures = ["async", "lock_ordering/futures", "dep:futures"]
+parking_lot = ["lock_ordering/parking_lot", "dep:parking_lot"]
+
+[dependencies]
+lock_ordering = { version = "0.2.0", path = "../lock-ordering" }
+
+futures = { version = "0.3", optional = true, features = ["std"], default-features = false }
+parking_lot = { version = "0.12", optional = true }
+tokio = { version = "1", optional = true, features = ["sync"] }
