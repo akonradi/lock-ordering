@@ -344,6 +344,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "locked-state"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "lock_ordering",
+ "parking_lot",
+ "tokio",
+]
+
+[[package]]
 name = "log"
 version = "0.4.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"

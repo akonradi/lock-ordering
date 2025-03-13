@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["lock-ordering"]
+members = ["lock-ordering", "locked-state"]
 
 [workspace.package]
 edition = "2021"
